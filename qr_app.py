@@ -10,7 +10,7 @@ import tkinter.font as tkfont
 import requests
 
 # Szerver URL (frissítsd a Render URL-re telepítés után, pl. https://your-app.onrender.com)
-SERVER_URL = "http://localhost:5000"  # Helyi teszteléshez; frissítsd a Render URL-re!
+SERVER_URL = "https://qr-app-c4jm.onrender.com"  # Helyi teszteléshez; frissítsd a Render URL-re!
 
 # --- Globális változók és adatok ---
 adatok = []

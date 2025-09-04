@@ -1,12 +1,12 @@
 from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import json
 import os
+import json
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
-
-# SQLite adatbázis konfigurálása (Render perzisztens fájlrendszeréhez)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////' + os.path.join(os.path.abspath(os.path.dirname(__file__)), 'qr_app.db')
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -44,26 +44,33 @@ def get_data_store():
 
 # Segédfunkció az adatbázis frissítésére JSON-ból
 def update_data_store(data):
-    # Meglévő adatok törlése
-    db.session.query(Mezo).delete()
-    db.session.query(Lista).delete()
-    db.session.query(Adat).delete()
+    try:
+        # Meglévő adatok törlése
+        db.session.query(Mezo).delete()
+        db.session.query(Lista).delete()
+        db.session.query(Adat).delete()
 
-    # Mezők beszúrása
-    for i, name in enumerate(data.get("mezok", [])):
-        db.session.add(Mezo(name=name, order=i))
+        # Mezők beszúrása
+        for i, name in enumerate(data.get("mezok", [])):
+            db.session.add(Mezo(name=name, order=i))
 
-    # Legördülő listák beszúrása
-    for field_name, options in data.get("listak", {}).items():
-        for option in options:
-            db.session.add(Lista(field_name=field_name, option=option))
+        # Legördülő listák beszúrása
+        for field_name, options in data.get("listak", {}).items():
+            for option in options:
+                db.session.add(Lista(field_name=field_name, option=option))
 
-    # Adatok beszúrása
-    for row in data.get("adatok", []):
-        if "Sorszám" in row:
-            db.session.add(Adat(sorszam=row["Sorszám"], data=json.dumps(row)))
+        # Adatok beszúrása
+        for row in data.get("adatok", []):
+            if "Sorszám" in row:
+                db.session.add(Adat(sorszam=row["Sorszám"], data=json.dumps(row)))
 
-    db.session.commit()
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        raise Exception(f"Adatbázis hiba: Valószínűleg duplikált Sorszám. Részletek: {str(e)}")
+    except Exception as e:
+        db.session.rollback()
+        raise Exception(f"Adatbázis hiba: {str(e)}")
 
 @app.route('/data', methods=['GET'])
 def get_data():
@@ -97,8 +104,15 @@ def edit_row(sorszam):
         if not row:
             return "Termék nem található", 404
         row.data = json.dumps(updated_row)
-        db.session.commit()
-        return {"status": "success"}, 200
+        try:
+            db.session.commit()
+            return {"status": "success"}, 200
+        except IntegrityError as e:
+            db.session.rollback()
+            return {"status": "error", "message": f"Adatbázis hiba: Valószínűleg duplikált Sorszám. Részletek: {str(e)}"}, 500
+        except Exception as e:
+            db.session.rollback()
+            return {"status": "error", "message": str(e)}, 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

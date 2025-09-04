@@ -10,7 +10,7 @@ import tkinter.font as tkfont
 import requests
 
 # Szerver URL (frissítsd a Render URL-re telepítés után, pl. https://your-app.onrender.com)
-SERVER_URL = "https://qr-app-c4jm.onrender.com"  # Helyi teszteléshez; frissítsd a Render URL-re!
+SERVER_URL = "http://localhost:5000"  # Helyi teszteléshez; frissítsd a Render URL-re!
 
 # --- Globális változók és adatok ---
 adatok = []
@@ -132,10 +132,18 @@ def sor_beviteli_ablak(modositott_sor=None, idx=None):
 
     def ment():
         sor = {field: entries[field].get() for field in entries}
+        if not sor.get("Sorszám"):
+            messagebox.showerror("Hiba", "A Sorszám mező kötelező!")
+            return
         if modositott_sor and idx is not None:
             adatok[idx] = sor
-            api_update_row(sor["Sorszám"], sor)
+            if not api_update_row(sor["Sorszám"], sor):
+                return
         else:
+            # Ellenőrizd, hogy a sorszám egyedi-e
+            if any(d.get("Sorszám") == sor["Sorszám"] for d in adatok):
+                messagebox.showerror("Hiba", "A Sorszám már létezik!")
+                return
             adatok.append(sor)
         sync_to_server()
         update_tree()
@@ -262,42 +270,38 @@ def mezok_kezelese_ablak():
         try:
             selected_idx = lb.curselection()[0]
             nev = mezok[selected_idx]
-            if nev in fix_mezok:
-                messagebox.showwarning("Figyelem", "Az alapértelmezett mezőket nem lehet legördülő listává tenni.")
-                return
             if nev in listak:
-                messagebox.showinfo("Információ", "Ez a mező már legördülő lista.")
+                messagebox.showwarning("Figyelem", "Ez a mező már legördülő lista!")
                 return
-
             listak[nev] = []
             sync_to_server()
             update_tree()
-            messagebox.showinfo("Kész", f"A(z) '{nev}' mező mostantól legördülő lista. Az opciókat a főmenüből szerkesztheted.")
-            
         except IndexError:
-            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt a legördülővé alakításhoz!")
-
+            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt!")
+    
     def fel():
-        idx = lb.curselection()
-        if not idx or idx[0]==0:
-            return
-        i = idx[0]
-        mezok[i], mezok[i-1] = mezok[i-1], mezok[i]
-        frissit_listbox()
-        lb.select_set(i-1)
-        sync_to_server()
-        update_tree()
-
+        try:
+            i = lb.curselection()[0]
+            if i > 0:
+                mezok[i-1], mezok[i] = mezok[i], mezok[i-1]
+                frissit_listbox()
+                lb.select_set(i-1)
+                sync_to_server()
+                update_tree()
+        except IndexError:
+            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt!")
+    
     def le():
-        idx = lb.curselection()
-        if not idx or idx[0]==len(mezok)-1:
-            return
-        i = idx[0]
-        mezok[i], mezok[i+1] = mezok[i+1], mezok[i]
-        frissit_listbox()
-        lb.select_set(i+1)
-        sync_to_server()
-        update_tree()
+        try:
+            i = lb.curselection()[0]
+            if i < len(mezok) - 1:
+                mezok[i], mezok[i+1] = mezok[i+1], mezok[i]
+                frissit_listbox()
+                lb.select_set(i+1)
+                sync_to_server()
+                update_tree()
+        except IndexError:
+            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt!")
 
     frame_buttons = tk.Frame(ablak)
     frame_buttons.pack(pady=5)

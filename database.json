@@ -15,24 +15,7 @@
     "Csávázószer",
     "Oltóanyag"
   ],
-  "adatok": [
-    {
-      "Azonosító": "1",
-      "Fémzárszám": "H-25-055/0962",
-      "Beszállító": "Lipták János - Katymár",
-      "Osztály": "Fémzárolt",
-      "Név": "Pannon bükköny - Detenicka Pannonska",
-      "Fok": "I. fok",
-      "Hely": "POLCOS-CSARNOK-ALAP",
-      "Súly": "20x50 kg",
-      "Megjegyzés": "",
-      "Tisztaság": "",
-      "Csíra": "",
-      "Víz": "",
-      "Csávázószer": "",
-      "Oltóanyag": ""
-    }
-  ],
+  "adatok": [],
   "listak": {
     "Beszállító": [
       "Beszállító 1",

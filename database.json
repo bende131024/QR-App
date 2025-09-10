@@ -1,0 +1,58 @@
+{
+  "mezok": [
+    "Azonosító",
+    "Fémzárszám",
+    "Beszállító",
+    "Osztály",
+    "Név",
+    "Fok",
+    "Hely",
+    "Súly",
+    "Megjegyzés",
+    "Tisztaság",
+    "Csíra",
+    "Víz",
+    "Csávázószer",
+    "Oltóanyag"
+  ],
+  "adatok": [
+    {
+      "Azonosító": "1",
+      "Fémzárszám": "H-25-055/0962",
+      "Beszállító": "Lipták János - Katymár",
+      "Osztály": "Fémzárolt",
+      "Név": "Pannon bükköny - Detenicka Pannonska",
+      "Fok": "I. fok",
+      "Hely": "POLCOS-CSARNOK-ALAP",
+      "Súly": "20x50 kg",
+      "Megjegyzés": "",
+      "Tisztaság": "",
+      "Csíra": "",
+      "Víz": "",
+      "Csávázószer": "",
+      "Oltóanyag": ""
+    }
+  ],
+  "listak": {
+    "Beszállító": [
+      "Beszállító 1",
+      "Beszállító 2",
+      "Beszállító 3",
+      "Lipták János - Katymár"
+    ],
+    "Fok": [
+      "Elit",
+      "I. fok",
+      "II. fok"
+    ],
+    "Hely": [
+      "POLCOS-CSARNOK-ALAP"
+    ],
+    "Osztály": [
+      "Alapanyag",
+      "Késztermék",
+      "Selejt",
+      "Fémzárolt"
+    ]
+  }
+}

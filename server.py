@@ -5,8 +5,9 @@ import json
 from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+data_dir = '/data'  # Render persistent disk mount path
+os.makedirs(data_dir, exist_ok=True)  # Biztosítjuk a mappa létezését
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(data_dir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -70,7 +71,7 @@ def update_data_store(data):
         db.session.commit()
     except IntegrityError as e:
         db.session.rollback()
-        raise Exception(f"Adatbázis hiba: Valószínűleg duplikált Azonosító. Részletek: {str(e)}")
+        raise Exception(f"Adatbázis hiba: Valószínűleg duplikált kulcs (pl. mező név vagy lista opció). Részletek: {str(e)}")
     except Exception as e:
         db.session.rollback()
         raise Exception(f"Adatbázis hiba: {str(e)}")
@@ -114,7 +115,7 @@ def edit_row(azonosito):
             return {"status": "success"}, 200
         except IntegrityError as e:
             db.session.rollback()
-            return {"status": "error", "message": f"Adatbázis hiba: Valószínűleg duplikált Azonosító. Részletek: {str(e)}"}, 500
+            return {"status": "error", "message": f"Adatbázis hiba: Valószínűleg duplikált kulcs. Részletek: {str(e)}"}, 500
         except Exception as e:
             db.session.rollback()
             return {"status": "error", "message": str(e)}, 500

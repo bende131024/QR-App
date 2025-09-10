@@ -15,7 +15,7 @@ SERVER_URL = "https://qr-app-uvm4.onrender.com"
 
 # --- Globális változók és adatok ---
 adatok = []
-fix_mezok = ["Azonosító", "Fémzárszám", "Beszállító", "Név", "Hely", "Súly", "Megjegyzés", "Osztály"]
+fix_mezok = ["Azonosító", "Sorszám", "Fémzárszám", "Beszállító", "Név", "Hely", "Súly", "Megjegyzés", "Osztály"]
 mezok = fix_mezok.copy()
 
 # Legördülő lista opciók
@@ -35,6 +35,13 @@ def api_get_data():
         response = requests.get(f"{SERVER_URL}/data")
         response.raise_for_status()
         return response.json()
+    except requests.exceptions.HTTPError as e:
+        try:
+            error = response.json()['message']
+        except:
+            error = str(e)
+        messagebox.showerror("Hiba", f"Szerver hiba: {error}")
+        return None
     except Exception as e:
         messagebox.showerror("Hiba", f"Szerver hiba: {e}")
         return None
@@ -44,6 +51,13 @@ def api_update_data(full_data):
         response = requests.post(f"{SERVER_URL}/update", json=full_data)
         response.raise_for_status()
         return True
+    except requests.exceptions.HTTPError as e:
+        try:
+            error = response.json()['message']
+        except:
+            error = str(e)
+        messagebox.showerror("Hiba", f"Szerver hiba: {error}")
+        return False
     except Exception as e:
         messagebox.showerror("Hiba", f"Szerver hiba: {e}")
         return False
@@ -53,6 +67,13 @@ def api_update_row(azonosito, row_data):
         response = requests.put(f"{SERVER_URL}/edit/{azonosito}", json=row_data)
         response.raise_for_status()
         return True
+    except requests.exceptions.HTTPError as e:
+        try:
+            error = response.json()['message']
+        except:
+            error = str(e)
+        messagebox.showerror("Hiba", f"Szerver hiba: {error}")
+        return False
     except Exception as e:
         messagebox.showerror("Hiba", f"Szerver hiba: {e}")
         return False
@@ -194,7 +215,7 @@ def qr_generalas():
 
     qr_popup = tk.Toplevel(root)
     qr_popup.title("QR Kódok")
-    qr_popup.geometry("600x400")
+    qr_popup.geometry("400x300")  # Kisebb ablak
     qr_popup.resizable(True, True)
 
     canvas = tk.Canvas(qr_popup)
@@ -216,8 +237,8 @@ def qr_generalas():
     for i in selected:
         idx = int(i)
         row = adatok[idx]
-        qr_data = json.dumps(row, ensure_ascii=False)
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr_data = row["Azonosító"]  # Csak az egyedi azonosítóból készül a QR
+        qr = qrcode.QRCode(version=1, box_size=5, border=4)  # Kisebb QR kód
         qr.add_data(qr_data)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white")

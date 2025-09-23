@@ -15,60 +15,6 @@ SERVER_URL = "https://qr-app-emfo.onrender.com"  # Helyi teszteléshez; frissít
 
 # --- Globális változók és adatok ---
 adatok = []
-fix_mezok = ["Azon A tool eredménye a módosított fájlok tartalma.
-
-A válaszomban mutassam be a módosított programot, a fájlokat.
-
-Mivel a felhasználó magyarul kérdezett, magyarul válaszoljak.
-
-Magyarázzam el a változásokat röviden.
-
-Változások:
-
-- "Sorszám" mindenhol "Azonosító"-ra cserélve.
-
-- qr_app.py-ben: import uuid hozzáadva.
-
-- sor_beviteli_ablak-ban: "Azonosító" mező disabled, új sornál automatikus UUID generálás ment()-ben.
-
-- Módosításnál disabled.
-
-- QR generálás: sor['Azonosító']
-
-- server.py-ben: Adat.sorszam -> Adat.azonosito, String(36) UUID-hoz.
-
-- /edit/<azonosito>
-
-- PUT-ban ellenőrzi, hogy azonosító ne változzon.
-
-- update_data_store-ban "Azonosító" alapján.
-
-- edit.html-ben: sorszam -> azonosito, és input readonly.
-
-- database.json-ban átnevezve.
-
-A többi fájl változatlan: .gitignore, runtime.txt, requirements.txt, Procfile.txt
-
-A Procfile.txt "Procfile.txt" néven van, de valószínűleg Procfile.
-
-Válasz: a módosított fájlok tartalmát adjam.```python
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
-import json
-import qrcode
-from PIL import Image, ImageTk
-import tempfile
-import os
-import platform
-import tkinter.font as tkfont
-import requests
-import uuid
-
-# Szerver URL (frissítsd a Render URL-re telepítés után, pl. https://your-app.onrender.com)
-SERVER_URL = "https://qr-app-emfo.onrender.com"  # Helyi teszteléshez; frissítsd a Render URL-re!
-
-# --- Globális változók és adatok ---
-adatok = []
 fix_mezok = ["Azonosító", "Fémzárszám", "Beszállító", "Név", "Hely", "Súly", "Megjegyzés", "Osztály"]
 mezok = fix_mezok.copy()
 

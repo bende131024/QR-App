@@ -24,7 +24,7 @@ class Lista(db.Model):
 
 class Adat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sorszam = db.Column(db.String(100), unique=True, nullable=False)
+    azonosito = db.Column(db.String(36), unique=True, nullable=False)
     data = db.Column(db.Text, nullable=False)  # JSON string dinamikus mezőkhöz
 
 # Adatbázis táblák létrehozása
@@ -61,13 +61,13 @@ def update_data_store(data):
 
         # Adatok beszúrása
         for row in data.get("adatok", []):
-            if "Sorszám" in row:
-                db.session.add(Adat(sorszam=row["Sorszám"], data=json.dumps(row)))
+            if "Azonosító" in row:
+                db.session.add(Adat(azonosito=row["Azonosító"], data=json.dumps(row)))
 
         db.session.commit()
     except IntegrityError as e:
         db.session.rollback()
-        raise Exception(f"Adatbázis hiba: Valószínűleg duplikált Sorszám. Részletek: {str(e)}")
+        raise Exception(f"Adatbázis hiba: Valószínűleg duplikált Azonosító. Részletek: {str(e)}")
     except Exception as e:
         db.session.rollback()
         raise Exception(f"Adatbázis hiba: {str(e)}")
@@ -85,31 +85,34 @@ def update_data():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
-@app.route('/edit/<sorszam>', methods=['GET', 'PUT'])
-def edit_row(sorszam):
+@app.route('/edit/<azonosito>', methods=['GET', 'PUT'])
+def edit_row(azonosito):
     if request.method == 'GET':
-        row = Adat.query.filter_by(sorszam=sorszam).first()
+        row = Adat.query.filter_by(azonosito=azonosito).first()
         if not row:
             return "Termék nem található", 404
         data_store = get_data_store()
         return render_template('edit.html',
-                               sorszam=sorszam,
+                               azonosito=azonosito,
                                row=json.loads(row.data),
                                mezok=data_store["mezok"],
                                listak=data_store["listak"])
     
     elif request.method == 'PUT':
         updated_row = request.json
-        row = Adat.query.filter_by(sorszam=sorszam).first()
+        row = Adat.query.filter_by(azonosito=azonosito).first()
         if not row:
             return "Termék nem található", 404
+        # Azonosító ne legyen módosítható
+        if updated_row.get("Azonosító") != azonosito:
+            return {"status": "error", "message": "Az azonosító nem módosítható!"}, 400
         row.data = json.dumps(updated_row)
         try:
             db.session.commit()
             return {"status": "success"}, 200
         except IntegrityError as e:
             db.session.rollback()
-            return {"status": "error", "message": f"Adatbázis hiba: Valószínűleg duplikált Sorszám. Részletek: {str(e)}"}, 500
+            return {"status": "error", "message": f"Adatbázis hiba: Valószínűleg duplikált Azonosító. Részletek: {str(e)}"}, 500
         except Exception as e:
             db.session.rollback()
             return {"status": "error", "message": str(e)}, 500

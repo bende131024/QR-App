@@ -354,8 +354,6 @@ tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).g
 tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=0, column=5, padx=5)
 tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=0, column=6, padx=5)
 tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=0, column=7, padx=5)
-tk.Button(frame, text="Mezők kezelése", command=mezok_kezelese_ablak).grid(row=0, column=8, padx=5)
-tk.Button(frame, text="Legördülő listák szerkesztése", command=legordulo_listak_szerkesztese_ablak).grid(row=0, column=9, padx=5)
 
 zoom_frame = tk.Frame(root)
 zoom_frame.pack(side="bottom", fill="x", padx=5, pady=5)

@@ -84,12 +84,19 @@ def update_tree():
         tree.heading(col, text=col)
         tree.column(col, width=150, anchor="center", stretch=tk.NO)
 
+    # töröljük a korábbi sorokat
     for i in tree.get_children():
         tree.delete(i)
+
+    # beszúrjuk az adatokat váltott tag-ekkel (váltott háttér)
     for idx, sor in enumerate(adatok):
-        # A tree csak a látható oszlopokat kapja meg, de az "Azonosító" a sorok adataiban megmarad
         values = [sor.get(f, "") for f in display_columns]
-        tree.insert("", "end", iid=idx, values=values)
+        tag = "evenrow" if idx % 2 == 0 else "oddrow"
+        tree.insert("", "end", iid=idx, values=values, tags=(tag,))
+
+    # konfiguráljuk a tag-eket (színek)
+    tree.tag_configure("evenrow", background="#ffffff")      # fehér
+    tree.tag_configure("oddrow", background="#f3f6f9")       # nagyon világos kékes/szürke (rács érzet)
     resize_columns()
 
 # --- Oszlopok átméretezése a tartalom alapján ---
@@ -102,8 +109,11 @@ def resize_columns():
         heading_width = heading_font.measure(tree.heading(col)["text"]) + 20
         max_cell_width = 0
         for child in tree.get_children():
-            cell_value = tree.set(child, col)
-            cell_width = cell_font.measure(cell_value) + 20
+            try:
+                cell_value = tree.set(child, col)
+            except Exception:
+                cell_value = ""
+            cell_width = cell_font.measure(str(cell_value)) + 20
             if cell_width > max_cell_width:
                 max_cell_width = cell_width
         new_width = max(heading_width, max_cell_width, 150)
@@ -170,6 +180,7 @@ def torles():
         messagebox.showwarning("Figyelem", "Válassz ki egy sort a törléshez!")
         return
     if messagebox.askyesno("Törlés", "Biztosan törlöd a kiválasztott sort?"):
+        # törlés visszafelé, hogy az indexek ne zavarjanak be
         for i in reversed(selected):
             del adatok[int(i)]
         sync_to_server()
@@ -282,7 +293,6 @@ def oszlop_hozzaadasa():
     if position is None:
         return
     position = max(1, min(position, len(mezok)+1))
-    # Pozíció felhasználóbarát (1 = elejére). "Azonosító" megőrzése az első helyen belsőleg
     insert_idx = position - 1
     mezok.insert(insert_idx, name)
     # adjunk hozzá üres értékeket a meglévő sorokhoz
@@ -478,7 +488,7 @@ style.configure("Custom.Treeview",
                 fieldbackground="white",
                 bordercolor="black",
                 borderwidth=1,
-                relief="solid",
+                relief="flat",
                 font=("Arial", 10))
 style.map("Custom.Treeview",
           background=[("selected", "#004080")],
@@ -488,7 +498,7 @@ style.configure("Custom.Treeview.Heading",
                 font=("Arial", 10, "bold"),
                 bordercolor="black",
                 borderwidth=1,
-                relief="solid")
+                relief="raised")
 
 frame_main = tk.Frame(root)
 frame_main.pack(fill="both", expand=True)
@@ -502,24 +512,28 @@ vsb_main.pack(side="right", fill="y")
 hsb_main.pack(side="bottom", fill="x")
 tree.pack(fill="both", expand=True, padx=10, pady=10)
 
-frame = tk.Frame(root)
-frame.pack(pady=10)
+# --- Gombok szebb, több soros elrendezése ---
+frame_buttons = tk.Frame(root)
+frame_buttons.pack(pady=8)
 
-tk.Button(frame, text="Új sor", command=lambda: sor_beviteli_ablak()).grid(row=0, column=0, padx=5)
-tk.Button(frame, text="Módosítás", command=modositas).grid(row=0, column=1, padx=5)
-tk.Button(frame, text="Törlés", command=torles).grid(row=0, column=2, padx=5)
-tk.Button(frame, text="QR generálás", command=qr_generalas).grid(row=0, column=3, padx=5)
-# új gombok a listák és oszlopok szerkesztéséhez
-tk.Button(frame, text="Legördülők szerkesztése", command=szerkesztes_legordulok).grid(row=0, column=4, padx=5)
-tk.Button(frame, text="Új oszlop", command=oszlop_hozzaadasa).grid(row=0, column=5, padx=5)
-tk.Button(frame, text="Oszlop sorrend", command=oszlop_sorrend_szerkesztese).grid(row=0, column=6, padx=5)
+# első sor (CRUD és QR)
+tk.Button(frame_buttons, text="Új sor", width=12, command=lambda: sor_beviteli_ablak()).grid(row=0, column=0, padx=6, pady=6)
+tk.Button(frame_buttons, text="Módosítás", width=12, command=modositas).grid(row=0, column=1, padx=6, pady=6)
+tk.Button(frame_buttons, text="Törlés", width=12, command=torles).grid(row=0, column=2, padx=6, pady=6)
+tk.Button(frame_buttons, text="QR generálás", width=12, command=qr_generalas).grid(row=0, column=3, padx=6, pady=6)
 
-# meglévő funkciók
-tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).grid(row=1, column=0, padx=5, pady=5)
-tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=1, column=1, padx=5, pady=5)
-tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=1, column=2, padx=5, pady=5)
-tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=1, column=3, padx=5, pady=5)
+# második sor (lista + oszlop kezelés)
+tk.Button(frame_buttons, text="Legördülők szerkesztése", width=18, command=szerkesztes_legordulok).grid(row=1, column=0, columnspan=2, padx=6, pady=6)
+tk.Button(frame_buttons, text="Új oszlop", width=12, command=oszlop_hozzaadasa).grid(row=1, column=2, padx=6, pady=6)
+tk.Button(frame_buttons, text="Oszlop sorrend", width=12, command=oszlop_sorrend_szerkesztese).grid(row=1, column=3, padx=6, pady=6)
 
+# harmadik sor (szinkron + mentés)
+tk.Button(frame_buttons, text="Szinkronizálás szerverrel", width=20, command=sync_from_server).grid(row=2, column=0, columnspan=2, padx=6, pady=6)
+tk.Button(frame_buttons, text="Mentés szerverre", width=12, command=sync_to_server).grid(row=2, column=2, padx=6, pady=6)
+tk.Button(frame_buttons, text="Lokális mentés", width=12, command=ment_local).grid(row=2, column=3, padx=6, pady=6)
+tk.Button(frame_buttons, text="Lokális betöltés", width=12, command=betolt_local).grid(row=2, column=4, padx=6, pady=6)
+
+# jobbra lent zoom
 zoom_frame = tk.Frame(root)
 zoom_frame.pack(side="bottom", fill="x", padx=5, pady=5)
 scale = tk.Scale(zoom_frame, from_=8, to=24, orient="horizontal", command=zoom, label="Zoom")

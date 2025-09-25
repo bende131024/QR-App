@@ -442,3 +442,78 @@ def betolt_local():
                 listak = {}
             else:
                 adatok = data_to_load
+
+# --- Zoom beállítás ---
+def zoom(val):
+    factor = int(val)
+    style.configure("Custom.Treeview", rowheight=int(factor * 1.5) + 10, font=("Arial", factor))
+    style.configure("Custom.Treeview.Heading", font=("Arial", factor, "bold"))
+    resize_columns()
+
+# --- Főablak ---
+root = tk.Tk()
+root.title("QR Kód Generáló - Dinamikus Mezők, Legördülők és Oszlopok szerkesztése")
+
+style = ttk.Style()
+style.theme_use("default")
+
+style.configure("Custom.Treeview",
+                background="white",
+                foreground="black",
+                rowheight=25,
+                fieldbackground="white",
+                bordercolor="black",
+                borderwidth=1,
+                relief="solid",
+                font=("Arial", 10))
+style.map("Custom.Treeview",
+          background=[("selected", "#004080")],
+          foreground=[("selected", "white")])
+
+style.configure("Custom.Treeview.Heading",
+                font=("Arial", 10, "bold"),
+                bordercolor="black",
+                borderwidth=1,
+                relief="solid")
+
+frame_main = tk.Frame(root)
+frame_main.pack(fill="both", expand=True)
+
+# init tree with no columns, update_tree will set them
+tree = ttk.Treeview(frame_main, show="headings", selectmode="extended", style="Custom.Treeview")
+vsb_main = ttk.Scrollbar(frame_main, orient="vertical", command=tree.yview)
+hsb_main = ttk.Scrollbar(frame_main, orient="horizontal", command=tree.xview)
+tree.configure(yscrollcommand=vsb_main.set, xscrollcommand=hsb_main.set)
+vsb_main.pack(side="right", fill="y")
+hsb_main.pack(side="bottom", fill="x")
+tree.pack(fill="both", expand=True, padx=10, pady=10)
+
+frame = tk.Frame(root)
+frame.pack(pady=10)
+
+tk.Button(frame, text="Új sor", command=lambda: sor_beviteli_ablak()).grid(row=0, column=0, padx=5)
+tk.Button(frame, text="Módosítás", command=modositas).grid(row=0, column=1, padx=5)
+tk.Button(frame, text="Törlés", command=torles).grid(row=0, column=2, padx=5)
+tk.Button(frame, text="QR generálás", command=qr_generalas).grid(row=0, column=3, padx=5)
+tk.Button(frame, text="Legördülők szerkesztése", command=szerkesztes_legordulok).grid(row=0, column=4, padx=5)
+tk.Button(frame, text="Új oszlop", command=oszlop_hozzaadasa).grid(row=0, column=5, padx=5)
+tk.Button(frame, text="Oszlop sorrend", command=oszlop_sorrend_szerkesztese).grid(row=0, column=6, padx=5)
+
+tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).grid(row=1, column=0, padx=5, pady=5)
+tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=1, column=1, padx=5, pady=5)
+tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=1, column=2, padx=5, pady=5)
+tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=1, column=3, padx=5, pady=5)
+
+zoom_frame = tk.Frame(root)
+zoom_frame.pack(side="bottom", fill="x", padx=5, pady=5)
+scale = tk.Scale(zoom_frame, from_=8, to=24, orient="horizontal", command=zoom, label="Zoom")
+scale.set(10)
+scale.pack(side="right")
+
+# Induláskor próbáljunk szinkronizálni
+try:
+    sync_from_server()
+except Exception:
+    update_tree()
+
+root.mainloop()

@@ -202,6 +202,15 @@ def szerkesztes_legordulok():
     lb_opts = tk.Listbox(options_frame, height=10)
     lb_opts.pack(fill="both", expand=True)
 
+    def on_option_click(event):
+        index = lb_opts.nearest(event.y)
+        if index >= 0:
+            lb_opts.selection_clear(0, "end")
+            lb_opts.selection_set(index)
+            lb_opts.activate(index)
+
+    lb_opts.bind("<Button-1>", on_option_click)
+
     def load_opts(event=None):
         lb_opts.delete(0, "end")
         sel = lb_keys.curselection()

@@ -29,6 +29,21 @@ listak = {
     "Osztály": osztaly_opciok
 }
 
+    def remove_option():
+        selk = lb_keys.curselection()
+        selo = lb_opts.curselection()
+        if not selk:
+            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
+            return
+        if not selo:
+            messagebox.showwarning("Figyelem", "Előbb válassz ki egy törlendő opciót!")
+            return
+        key = lb_keys.get(selk[0])
+        opt = lb_opts.get(selo[0])
+        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{opt}' opciót a(z) '{key}' listából?"):
+            listak[key].remove(opt)
+            load_opts()
+
 # --- API segédfunkciók ---
 def api_get_data():
     try:

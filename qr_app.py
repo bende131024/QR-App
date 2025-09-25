@@ -29,21 +29,6 @@ listak = {
     "Osztály": osztaly_opciok
 }
 
-    def remove_option():
-        selk = lb_keys.curselection()
-        selo = lb_opts.curselection()
-        if not selk:
-            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
-            return
-        if not selo:
-            messagebox.showwarning("Figyelem", "Előbb válassz ki egy törlendő opciót!")
-            return
-        key = lb_keys.get(selk[0])
-        opt = lb_opts.get(selo[0])
-        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{opt}' opciót a(z) '{key}' listából?"):
-            listak[key].remove(opt)
-            load_opts()
-
 # --- API segédfunkciók ---
 def api_get_data():
     try:
@@ -102,12 +87,11 @@ def update_tree():
     for i in tree.get_children():
         tree.delete(i)
     for idx, sor in enumerate(adatok):
-        # A tree csak a látható oszlopokat kapja meg, de az "Azonosító" a sorok adataiban megmarad
         values = [sor.get(f, "") for f in display_columns]
         tree.insert("", "end", iid=idx, values=values)
     resize_columns()
 
-# --- Oszlopok átméretezése a tartalom alapján ---
+# --- Oszlopok átméretezése ---
 def resize_columns():
     factor = scale.get()
     cell_font = tkfont.Font(family="Arial", size=factor)
@@ -126,14 +110,13 @@ def resize_columns():
 
     tree.update_idletasks()
 
-# --- Új sor / módosítás ablak ---
+# --- Sor hozzáadás / módosítás ---
 def sor_beviteli_ablak(modositott_sor=None, idx=None):
     ablak = tk.Toplevel(root)
     ablak.title("Sor hozzáadása / módosítása")
     entries = {}
 
     for i, field in enumerate(mezok):
-        # Azonosító megjelenik a szerkesztőablakban (readonly), de a főlista nem mutatja
         tk.Label(ablak, text=field).grid(row=i, column=0, padx=5, pady=5, sticky="w")
         if field == "Azonosító":
             entry = tk.Entry(ablak, width=50)
@@ -165,11 +148,10 @@ def sor_beviteli_ablak(modositott_sor=None, idx=None):
             if not api_update_row(sor["Azonosító"], sor):
                 return
         else:
-            # Generáljunk egyedi azonosítót
             azonosito = str(uuid.uuid4())
             sor["Azonosító"] = azonosito
             if any(d.get("Azonosító") == azonosito for d in adatok):
-                messagebox.showerror("Hiba", "Az azonosító már létezik! (Ritka eset)")
+                messagebox.showerror("Hiba", "Az azonosító már létezik!")
                 return
             adatok.append(sor)
         sync_to_server()
@@ -178,7 +160,7 @@ def sor_beviteli_ablak(modositott_sor=None, idx=None):
 
     tk.Button(ablak, text="Mentés", command=ment).grid(row=len(mezok), column=0, columnspan=2, pady=10)
 
-# --- Sor törlése ---
+# --- Sor törlés ---
 def torles():
     selected = tree.selection()
     if not selected:
@@ -190,7 +172,7 @@ def torles():
         sync_to_server()
         update_tree()
 
-# --- Sor módosítása ---
+# --- Sor módosítás ---
 def modositas():
     selected = tree.selection()
     if not selected:
@@ -243,9 +225,10 @@ def szerkesztes_legordulok():
     def remove_list_key():
         sel = lb_keys.curselection()
         if not sel:
+            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
             return
         key = lb_keys.get(sel[0])
-        if messagebox.askyesno("Törlés", f"Biztos törlöd a '{key}' listát? (Ez nem törli az oszlopot automatikusan)" ):
+        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{key}' listát? (Ez nem törli az oszlopot automatikusan)"):
             del listak[key]
             lb_keys.delete(sel[0])
             lb_opts.delete(0, "end")
@@ -264,12 +247,17 @@ def szerkesztes_legordulok():
     def remove_option():
         selk = lb_keys.curselection()
         selo = lb_opts.curselection()
-        if not selk or not selo:
+        if not selk:
+            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
+            return
+        if not selo:
+            messagebox.showwarning("Figyelem", "Előbb válassz ki egy törlendő opciót!")
             return
         key = lb_keys.get(selk[0])
         opt = lb_opts.get(selo[0])
-        listak[key].remove(opt)
-        load_opts()
+        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{opt}' opciót a(z) '{key}' listából?"):
+            listak[key].remove(opt)
+            load_opts()
 
     btn_frame = tk.Frame(options_frame)
     btn_frame.pack(fill="x", pady=5)
@@ -285,7 +273,7 @@ def szerkesztes_legordulok():
 
     tk.Button(ablak, text="Mentés és bezárás", command=save_and_close).pack(pady=8)
 
-# --- Új oszlop hozzáadása ---
+# --- Oszlop hozzáadása ---
 def oszlop_hozzaadasa():
     name = simpledialog.askstring("Új oszlop", "Add meg az új oszlop nevét:")
     if not name:
@@ -297,16 +285,14 @@ def oszlop_hozzaadasa():
     if position is None:
         return
     position = max(1, min(position, len(mezok)+1))
-    # Pozíció felhasználóbarát (1 = elejére). "Azonosító" megőrzése az első helyen belsőleg
     insert_idx = position - 1
     mezok.insert(insert_idx, name)
-    # adjunk hozzá üres értékeket a meglévő sorokhoz
     for r in adatok:
         r.setdefault(name, "")
     sync_to_server()
     update_tree()
 
-# --- Oszlopok sorrend szerkesztése ---
+# --- Oszlop sorrend szerkesztése ---
 def oszlop_sorrend_szerkesztese():
     ablak = tk.Toplevel(root)
     ablak.title("Oszlopok sorrendje")
@@ -347,10 +333,8 @@ def oszlop_sorrend_szerkesztese():
 
     def apply_order():
         new_order = [lb.get(i) for i in range(lb.size())]
-        # frissítjük a mezok listát és mentünk
         global mezok
         mezok = new_order
-        # biztosítjuk, hogy minden sor tartalmazza az összes kulcsot
         for r in adatok:
             for k in mezok:
                 r.setdefault(k, "")
@@ -427,7 +411,7 @@ def qr_generalas():
     print_button = tk.Button(qr_popup, text="Nyomtatás", command=nyomtat)
     print_button.pack(pady=10, side="bottom")
 
-# --- Mentés JSON (helyi mentés) ---
+# --- Mentés JSON ---
 def ment_local():
     path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files","*.json")])
     if path:
@@ -435,7 +419,7 @@ def ment_local():
             json.dump({"mezok": mezok, "adatok": adatok, "listak": listak}, f, ensure_ascii=False, indent=2)
         messagebox.showinfo("Mentve", f"Adatok elmentve lokálisan: {path}")
 
-# --- Betöltés JSON (helyi mentés) ---
+# --- Betöltés JSON ---
 def betolt_local():
     path = filedialog.askopenfilename(filetypes=[("JSON files","*.json")])
     if path:
@@ -472,7 +456,7 @@ def betolt_local():
         update_tree()
         messagebox.showinfo("Betöltve", f"Adatok betöltve lokálisan: {path}")
 
-# --- Zoom beállítás ---
+# --- Zoom ---
 def zoom(val):
     factor = int(val)
     style.configure("Custom.Treeview", rowheight=int(factor * 1.5) + 10, font=("Arial", factor))
@@ -508,7 +492,6 @@ style.configure("Custom.Treeview.Heading",
 frame_main = tk.Frame(root)
 frame_main.pack(fill="both", expand=True)
 
-# init tree with no columns, update_tree will set them
 tree = ttk.Treeview(frame_main, show="headings", selectmode="extended", style="Custom.Treeview")
 vsb_main = ttk.Scrollbar(frame_main, orient="vertical", command=tree.yview)
 hsb_main = ttk.Scrollbar(frame_main, orient="horizontal", command=tree.xview)
@@ -524,12 +507,10 @@ tk.Button(frame, text="Új sor", command=lambda: sor_beviteli_ablak()).grid(row=
 tk.Button(frame, text="Módosítás", command=modositas).grid(row=0, column=1, padx=5)
 tk.Button(frame, text="Törlés", command=torles).grid(row=0, column=2, padx=5)
 tk.Button(frame, text="QR generálás", command=qr_generalas).grid(row=0, column=3, padx=5)
-# új gombok a listák és oszlopok szerkesztéséhez
 tk.Button(frame, text="Legördülők szerkesztése", command=szerkesztes_legordulok).grid(row=0, column=4, padx=5)
 tk.Button(frame, text="Új oszlop", command=oszlop_hozzaadasa).grid(row=0, column=5, padx=5)
 tk.Button(frame, text="Oszlop sorrend", command=oszlop_sorrend_szerkesztese).grid(row=0, column=6, padx=5)
 
-# meglévő funkciók
 tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).grid(row=1, column=0, padx=5, pady=5)
 tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=1, column=1, padx=5, pady=5)
 tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=1, column=2, padx=5, pady=5)
@@ -541,7 +522,6 @@ scale = tk.Scale(zoom_frame, from_=8, to=24, orient="horizontal", command=zoom, 
 scale.set(10)
 scale.pack(side="right")
 
-# Induláskor töltsünk le adatot, ha elérhető
 try:
     sync_from_server()
 except Exception:

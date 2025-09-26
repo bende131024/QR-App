@@ -186,12 +186,19 @@ def szerkesztes_legordulok():
     ablak = tk.Toplevel(root)
     ablak.title("Legördülők szerkesztése")
 
+    # Debug: Ellenőrizzük a listak tartalmát
+    print(f"Debug: listak = {listak}")
+
     # Bal oldali listbox: legördülő mezők listája
     tk.Label(ablak, text="Mezők").grid(row=0, column=0, padx=5, pady=5)
     field_listbox = tk.Listbox(ablak, height=10, width=20)
     field_listbox.grid(row=1, column=0, padx=5, pady=5)
-    for field in sorted(listak.keys()):
-        field_listbox.insert(tk.END, field)
+    if not listak:
+        field_listbox.insert(tk.END, "Nincs elérhető mező")
+    else:
+        for field in sorted(listak.keys()):
+            field_listbox.insert(tk.END, field)
+            print(f"Debug: Hozzáadva mező: {field}")
 
     # Jobb oldali listbox: kiválasztott mező opciói
     tk.Label(ablak, text="Opcio:").grid(row=0, column=1, padx=5, pady=5)
@@ -202,15 +209,24 @@ def szerkesztes_legordulok():
     def update_options(event=None):
         selected = field_listbox.curselection()
         option_listbox.delete(0, tk.END)  # Törli a régi opciókat
+        print(f"Debug: Kiválasztott mező index: {selected}")
         if selected:
             field = field_listbox.get(selected[0])
+            print(f"Debug: Kiválasztott mező: {field}")
             if field in listak:
                 for option in sorted(listak[field]):
                     option_listbox.insert(tk.END, option)
+                    print(f"Debug: Hozzáadva opció: {option}")
+            else:
+                option_listbox.insert(tk.END, "Nincs opció ehhez a mezőhöz")
+        else:
+            option_listbox.insert(tk.END, "Válassz mezőt!")
 
+    # Kezdeti frissítés és esemény kötése
     field_listbox.bind("<<ListboxSelect>>", update_options)
+    update_options()  # Kezdeti betöltés
 
-    # Gombok függvényei hibakezeléssel
+    # Gombok függvényei
     def uj_opcio():
         selected = field_listbox.curselection()
         if not selected:
@@ -222,11 +238,9 @@ def szerkesztes_legordulok():
             if field not in listak:
                 listak[field] = []
             listak[field].append(new_option)
-            update_options()  # Frissíti a listboxot
-            sync_to_server()  # Szinkronizálja a szerverrel
+            update_options()
+            sync_to_server()
             messagebox.showinfo("Siker", f"Új opció hozzáadva: {new_option}")
-        elif new_option:
-            messagebox.showwarning("Figyelmeztetés", "Ez az opció már létezik!")
 
     def modositas_opcio():
         selected_field = field_listbox.curselection()
@@ -240,11 +254,9 @@ def szerkesztes_legordulok():
         if new_option and new_option != old_option:
             idx = listak[field].index(old_option)
             listak[field][idx] = new_option
-            update_options()  # Frissíti a listboxot
-            sync_to_server()  # Szinkronizálja a szerverrel
+            update_options()
+            sync_to_server()
             messagebox.showinfo("Siker", f"Opció módosítva: {old_option} -> {new_option}")
-        elif new_option:
-            messagebox.showwarning("Figyelmeztetés", "Nincs változás az értékben!")
 
     def torles_opcio():
         selected_field = field_listbox.curselection()
@@ -256,29 +268,26 @@ def szerkesztes_legordulok():
         option = option_listbox.get(selected_option[0])
         if field in listak and option in listak[field]:
             listak[field].remove(option)
-            update_options()  # Frissíti a listboxot
-            sync_to_server()  # Szinkronizálja a szerverrel
+            update_options()
+            sync_to_server()
             messagebox.showinfo("Siker", f"Opció törölve: {option}")
-        else:
-            messagebox.showwarning("Figyelmeztetés", "Az opció nem található!")
 
     # Gombok hozzáadása
     tk.Button(ablak, text="Új opció", command=uj_opcio).grid(row=2, column=1, padx=5, pady=5)
     tk.Button(ablak, text="Opcio módosítás", command=modositas_opcio).grid(row=3, column=1, padx=5, pady=5)
     tk.Button(ablak, text="Törlés opció", command=torles_opcio).grid(row=4, column=1, padx=5, pady=5)
 
-    # Kezdeti frissítés
-    update_options()
-
     # Bezáráskor szinkronizáció
     def close():
         sync_to_server()
-        update_tree()  # Frissítsd a fő táblát, ha kell
+        update_tree()
         ablak.destroy()
 
     tk.Button(ablak, text="Mentés és bezárás", command=close).grid(row=5, column=0, columnspan=2, pady=10)
 
-    ablak.mainloop()  # Nem kell, mert Toplevel, de ha kell, tedd be
+    ablak.transient(root)  # Megakadályozza, hogy az ablak a háttérbe kerüljön
+    ablak.grab_set()  # Fókuszban tartja az ablakot
+    ablak.mainloop()  # Toplevel ablakhoz szükséges
 
 # --- Oszlop hozzáadása ---
 def oszlop_hozzaadasa():

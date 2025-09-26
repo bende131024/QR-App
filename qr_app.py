@@ -199,54 +199,78 @@ def szerkesztes_legordulok():
     option_listbox.grid(row=1, column=1, padx=5, pady=5)
 
     # Eseménykezelő: frissíti az opciókat, ha mezőt választasz
-    def update_options(event):
+    def update_options(event=None):
         selected = field_listbox.curselection()
+        option_listbox.delete(0, tk.END)  # Törli a régi opciókat
         if selected:
             field = field_listbox.get(selected[0])
-            option_listbox.delete(0, tk.END)  # Törli a régi opciókat
             if field in listak:
                 for option in sorted(listak[field]):
                     option_listbox.insert(tk.END, option)
 
     field_listbox.bind("<<ListboxSelect>>", update_options)
 
-    # Gombok hozzáadáshoz, törléshez stb. (ezek már valószínűleg megvannak, de itt egy példa)
+    # Gombok függvényei hibakezeléssel
     def uj_opcio():
-        selected_field = field_listbox.get(field_listbox.curselection())
-        if selected_field:
-            new_option = simpledialog.askstring("Új opció", "Új opció értéke:")
-            if new_option and new_option not in listak.get(selected_field, []):
-                listak[selected_field].append(new_option)
-                update_options(None)  # Frissíti a listboxot
-                sync_to_server()  # Szinkronizáld a szerverrel, ha kell
-
-    def torles_opcio():
-        selected_field = field_listbox.get(field_listbox.curselection())
-        selected_option = option_listbox.get(option_listbox.curselection())
-        if selected_field and selected_option:
-            listak[selected_field].remove(selected_option)
-            update_options(None)
-            sync_to_server()
+        selected = field_listbox.curselection()
+        if not selected:
+            messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt!")
+            return
+        field = field_listbox.get(selected[0])
+        new_option = simpledialog.askstring("Új opció", "Új opció értéke:", parent=ablak)
+        if new_option and new_option not in listak.get(field, []):
+            if field not in listak:
+                listak[field] = []
+            listak[field].append(new_option)
+            update_options()  # Frissíti a listboxot
+            sync_to_server()  # Szinkronizálja a szerverrel
+            messagebox.showinfo("Siker", f"Új opció hozzáadva: {new_option}")
+        elif new_option:
+            messagebox.showwarning("Figyelmeztetés", "Ez az opció már létezik!")
 
     def modositas_opcio():
-        selected_field = field_listbox.get(field_listbox.curselection())
-        selected_idx = option_listbox.curselection()
-        if selected_field and selected_idx:
-            old_option = option_listbox.get(selected_idx)
-            new_option = simpledialog.askstring("Opcio módosítás", "Új érték:", initialvalue=old_option)
-            if new_option and new_option != old_option:
-                listak[selected_field][listak[selected_field].index(old_option)] = new_option
-                update_options(None)
-                sync_to_server()
+        selected_field = field_listbox.curselection()
+        selected_option = option_listbox.curselection()
+        if not selected_field or not selected_option:
+            messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt és egy opciót!")
+            return
+        field = field_listbox.get(selected_field[0])
+        old_option = option_listbox.get(selected_option[0])
+        new_option = simpledialog.askstring("Opcio módosítás", "Új érték:", initialvalue=old_option, parent=ablak)
+        if new_option and new_option != old_option:
+            idx = listak[field].index(old_option)
+            listak[field][idx] = new_option
+            update_options()  # Frissíti a listboxot
+            sync_to_server()  # Szinkronizálja a szerverrel
+            messagebox.showinfo("Siker", f"Opció módosítva: {old_option} -> {new_option}")
+        elif new_option:
+            messagebox.showwarning("Figyelmeztetés", "Nincs változás az értékben!")
 
-    # Gombok hozzáadása (igazítsd a grid pozíciókat)
+    def torles_opcio():
+        selected_field = field_listbox.curselection()
+        selected_option = option_listbox.curselection()
+        if not selected_field or not selected_option:
+            messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt és egy opciót!")
+            return
+        field = field_listbox.get(selected_field[0])
+        option = option_listbox.get(selected_option[0])
+        if field in listak and option in listak[field]:
+            listak[field].remove(option)
+            update_options()  # Frissíti a listboxot
+            sync_to_server()  # Szinkronizálja a szerverrel
+            messagebox.showinfo("Siker", f"Opció törölve: {option}")
+        else:
+            messagebox.showwarning("Figyelmeztetés", "Az opció nem található!")
+
+    # Gombok hozzáadása
     tk.Button(ablak, text="Új opció", command=uj_opcio).grid(row=2, column=1, padx=5, pady=5)
     tk.Button(ablak, text="Opcio módosítás", command=modositas_opcio).grid(row=3, column=1, padx=5, pady=5)
     tk.Button(ablak, text="Törlés opció", command=torles_opcio).grid(row=4, column=1, padx=5, pady=5)
 
-    # További gombok az új mezőhöz/törléshez („Új lista”, „Törlés”) már megvannak, azokat hagyd
+    # Kezdeti frissítés
+    update_options()
 
-    # Bezáráskor szinkronizáld, ha kell
+    # Bezáráskor szinkronizáció
     def close():
         sync_to_server()
         update_tree()  # Frissítsd a fő táblát, ha kell

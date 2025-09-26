@@ -187,84 +187,72 @@ def szerkesztes_legordulok():
     ablak = tk.Toplevel(root)
     ablak.title("Legördülők szerkesztése")
 
-    # Bal oldali listbox: legördülő mezők listája
-    tk.Label(ablak, text="Mezők").grid(row=0, column=0, padx=5, pady=5)
-    field_listbox = tk.Listbox(ablak, height=10, width=20)
-    field_listbox.grid(row=1, column=0, padx=5, pady=5)
-    if not listak:
-        field_listbox.insert(tk.END, "Nincs elérhető mező")
-    else:
-        for field in sorted(listak.keys()):
-            field_listbox.insert(tk.END, field)
+    # Mező kiválasztása
+    tk.Label(ablak, text="Mező kiválasztása:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    field_combobox = ttk.Combobox(ablak, values=sorted(listak.keys()), width=30)
+    field_combobox.grid(row=0, column=1, padx=5, pady=5)
 
-    # Jobb oldali listbox: kiválasztott mező opciói
-    tk.Label(ablak, text="Opciók").grid(row=0, column=1, padx=5, pady=5)
-    option_listbox = tk.Listbox(ablak, height=10, width=30)
-    option_listbox.grid(row=1, column=1, padx=5, pady=5)
+    # Opció kiválasztása
+    tk.Label(ablak, text="Opció kiválasztása:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    option_combobox = ttk.Combobox(ablak, width=30)
+    option_combobox.grid(row=1, column=1, padx=5, pady=5)
 
-    # Eseménykezelő: frissíti az opciókat, ha mezőt választasz
+    # Frissíti az opciókat a kiválasztott mező alapján
     def update_options(event=None):
-        selected = field_listbox.curselection()
-        option_listbox.delete(0, tk.END)  # Törli a régi opciókat
-        if selected:
-            field = field_listbox.get(selected[0])
-            if field in listak:
-                for option in sorted(listak[field]):
-                    option_listbox.insert(tk.END, option)
-            else:
-                option_listbox.insert(tk.END, "Nincs opció ehhez a mezőhöz")
+        selected_field = field_combobox.get()
+        option_combobox.set("")  # Ürítjük a comboboxot
+        if selected_field in listak:
+            option_combobox["values"] = sorted(listak[selected_field])
         else:
-            option_listbox.insert(tk.END, "Válassz mezőt!")
+            option_combobox["values"] = []
 
-    # Kezdeti frissítés és esemény kötése
-    field_listbox.bind("<<ListboxSelect>>", update_options)
-    update_options()  # Kezdeti betöltés
+    field_combobox.bind("<<ComboboxSelected>>", update_options)
 
     # Gombok függvényei
     def uj_opcio():
-        selected = field_listbox.curselection()
-        if not selected:
+        selected_field = field_combobox.get()
+        if not selected_field:
             messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt!")
             return
-        field = field_listbox.get(selected[0])
         new_option = simpledialog.askstring("Új opció", "Új opció értéke:", parent=ablak)
-        if new_option and new_option not in listak.get(field, []):
-            if field not in listak:
-                listak[field] = []
-            listak[field].append(new_option)
-            update_options()
+        if new_option and new_option not in listak.get(selected_field, []):
+            if selected_field not in listak:
+                listak[selected_field] = []
+            listak[selected_field].append(new_option)
+            update_options(None)  # Frissítjük az opciókat
+            option_combobox["values"] = sorted(listak[selected_field])
             sync_to_server()
             messagebox.showinfo("Siker", f"Új opció hozzáadva: {new_option}")
 
     def modositas_opcio():
-        selected_field = field_listbox.curselection()
-        selected_option = option_listbox.curselection()
+        selected_field = field_combobox.get()
+        selected_option = option_combobox.get()
         if not selected_field or not selected_option:
             messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt és egy opciót!")
             return
-        field = field_listbox.get(selected_field[0])
-        old_option = option_listbox.get(selected_option[0])
-        new_option = simpledialog.askstring("Opció módosítás", "Új érték:", initialvalue=old_option, parent=ablak)
-        if new_option and new_option != old_option:
-            idx = listak[field].index(old_option)
-            listak[field][idx] = new_option
-            update_options()
+        new_option = simpledialog.askstring("Opció módosítás", "Új érték:", initialvalue=selected_option, parent=ablak)
+        if new_option and new_option != selected_option:
+            idx = listak[selected_field].index(selected_option)
+            listak[selected_field][idx] = new_option
+            update_options(None)  # Frissítjük az opciókat
+            option_combobox["values"] = sorted(listak[selected_field])
+            option_combobox.set(new_option)
             sync_to_server()
-            messagebox.showinfo("Siker", f"Opció módosítva: {old_option} -> {new_option}")
+            messagebox.showinfo("Siker", f"Opció módosítva: {selected_option} -> {new_option}")
 
     def torles_opcio():
-        selected_field = field_listbox.curselection()
-        selected_option = option_listbox.curselection()
+        selected_field = field_combobox.get()
+        selected_option = option_combobox.get()
         if not selected_field or not selected_option:
             messagebox.showwarning("Figyelmeztetés", "Előbb válassz ki egy mezőt és egy opciót!")
             return
-        field = field_listbox.get(selected_field[0])
-        option = option_listbox.get(selected_option[0])
-        if field in listak and option in listak[field]:
-            listak[field].remove(option)
-            update_options()
+        if selected_field in listak and selected_option in listak[selected_field]:
+            listak[selected_field].remove(selected_option)
+            update_options(None)  # Frissítjük az opciókat
+            option_combobox["values"] = sorted(listak[selected_field])
+            option_combobox.set("")
             sync_to_server()
-            messagebox.showinfo("Siker", f"Opció törölve: {option}")
+            messagebox.showinfo("Siker", f"Opció törölve: {selected_option}")
 
     # Gombok hozzáadása
     tk.Button(ablak, text="Új opció", command=uj_opcio).grid(row=2, column=1, padx=5, pady=5)

@@ -186,101 +186,75 @@ def szerkesztes_legordulok():
     ablak = tk.Toplevel(root)
     ablak.title("Legördülők szerkesztése")
 
-    listbox_frame = tk.Frame(ablak)
-    listbox_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+    # Bal oldali listbox: legördülő mezők listája
+    tk.Label(ablak, text="Mezők").grid(row=0, column=0, padx=5, pady=5)
+    field_listbox = tk.Listbox(ablak, height=10, width=20)
+    field_listbox.grid(row=1, column=0, padx=5, pady=5)
+    for field in sorted(listak.keys()):
+        field_listbox.insert(tk.END, field)
 
-    keys = list(listak.keys())
-    lb_keys = tk.Listbox(listbox_frame, height=12)
-    for k in keys:
-        lb_keys.insert("end", k)
-    lb_keys.pack(fill="both", expand=True)
+    # Jobb oldali listbox: kiválasztott mező opciói
+    tk.Label(ablak, text="Opcio:").grid(row=0, column=1, padx=5, pady=5)
+    option_listbox = tk.Listbox(ablak, height=10, width=30)
+    option_listbox.grid(row=1, column=1, padx=5, pady=5)
 
-    options_frame = tk.Frame(ablak)
-    options_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+    # Eseménykezelő: frissíti az opciókat, ha mezőt választasz
+    def update_options(event):
+        selected = field_listbox.curselection()
+        if selected:
+            field = field_listbox.get(selected[0])
+            option_listbox.delete(0, tk.END)  # Törli a régi opciókat
+            if field in listak:
+                for option in sorted(listak[field]):
+                    option_listbox.insert(tk.END, option)
 
-    tk.Label(options_frame, text="Opciók:").pack(anchor="w")
-    lb_opts = tk.Listbox(options_frame, height=10)
-    lb_opts.pack(fill="both", expand=True)
+    field_listbox.bind("<<ListboxSelect>>", update_options)
 
-    def on_option_click(event):
-        index = lb_opts.nearest(event.y)
-        if index >= 0:
-            lb_opts.selection_clear(0, "end")
-            lb_opts.selection_set(index)
-            lb_opts.activate(index)
+    # Gombok hozzáadáshoz, törléshez stb. (ezek már valószínűleg megvannak, de itt egy példa)
+    def uj_opcio():
+        selected_field = field_listbox.get(field_listbox.curselection())
+        if selected_field:
+            new_option = simpledialog.askstring("Új opció", "Új opció értéke:")
+            if new_option and new_option not in listak.get(selected_field, []):
+                listak[selected_field].append(new_option)
+                update_options(None)  # Frissíti a listboxot
+                sync_to_server()  # Szinkronizáld a szerverrel, ha kell
 
-    lb_opts.bind("<Button-1>", on_option_click)
+    def torles_opcio():
+        selected_field = field_listbox.get(field_listbox.curselection())
+        selected_option = option_listbox.get(option_listbox.curselection())
+        if selected_field and selected_option:
+            listak[selected_field].remove(selected_option)
+            update_options(None)
+            sync_to_server()
 
-    def load_opts(event=None):
-        lb_opts.delete(0, "end")
-        sel = lb_keys.curselection()
-        if not sel:
-            return
-        key = lb_keys.get(sel[0])
-        for o in listak.get(key, []):
-            lb_opts.insert("end", o)
+    def modositas_opcio():
+        selected_field = field_listbox.get(field_listbox.curselection())
+        selected_idx = option_listbox.curselection()
+        if selected_field and selected_idx:
+            old_option = option_listbox.get(selected_idx)
+            new_option = simpledialog.askstring("Opcio módosítás", "Új érték:", initialvalue=old_option)
+            if new_option and new_option != old_option:
+                listak[selected_field][listak[selected_field].index(old_option)] = new_option
+                update_options(None)
+                sync_to_server()
 
-    lb_keys.bind("<<ListboxSelect>>", load_opts)
+    # Gombok hozzáadása (igazítsd a grid pozíciókat)
+    tk.Button(ablak, text="Új opció", command=uj_opcio).grid(row=2, column=1, padx=5, pady=5)
+    tk.Button(ablak, text="Opcio módosítás", command=modositas_opcio).grid(row=3, column=1, padx=5, pady=5)
+    tk.Button(ablak, text="Törlés opció", command=torles_opcio).grid(row=4, column=1, padx=5, pady=5)
 
-    def add_list_key():
-        name = simpledialog.askstring("Új lista", "Adj meg egy új legördülő mező nevet:")
-        if name:
-            if name in listak:
-                messagebox.showwarning("Figyelem", "Már létezik ilyen lista.")
-                return
-            listak[name] = []
-            lb_keys.insert("end", name)
+    # További gombok az új mezőhöz/törléshez („Új lista”, „Törlés”) már megvannak, azokat hagyd
 
-    def remove_list_key():
-        sel = lb_keys.curselection()
-        if not sel:
-            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
-            return
-        key = lb_keys.get(sel[0])
-        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{key}' listát? (Ez nem törli az oszlopot automatikusan)"):
-            del listak[key]
-            lb_keys.delete(sel[0])
-            lb_opts.delete(0, "end")
-
-    def add_option():
-        sel = lb_keys.curselection()
-        if not sel:
-            messagebox.showwarning("Figyelem", "Válassz ki előbb egy listát!")
-            return
-        key = lb_keys.get(sel[0])
-        val = simpledialog.askstring("Új opció", "Adj meg egy új opciót:")
-        if val:
-            listak.setdefault(key, []).append(val)
-            load_opts()
-
-    def remove_option():
-        selk = lb_keys.curselection()
-        selo = lb_opts.curselection()
-        if not selk:
-            messagebox.showwarning("Figyelem", "Előbb válassz ki egy listát!")
-            return
-        if not selo:
-            messagebox.showwarning("Figyelem", "Előbb válassz ki egy törlendő opciót!")
-            return
-        key = lb_keys.get(selk[0])
-        opt = lb_opts.get(selo[0])
-        if messagebox.askyesno("Törlés", f"Biztosan törlöd a '{opt}' opciót a(z) '{key}' listából?"):
-            listak[key].remove(opt)
-            load_opts()
-
-    btn_frame = tk.Frame(options_frame)
-    btn_frame.pack(fill="x", pady=5)
-    tk.Button(btn_frame, text="Új lista", command=add_list_key).pack(side="left", padx=3)
-    tk.Button(btn_frame, text="Törlés lista", command=remove_list_key).pack(side="left", padx=3)
-    tk.Button(btn_frame, text="Új opció", command=add_option).pack(side="left", padx=3)
-    tk.Button(btn_frame, text="Törlés opció", command=remove_option).pack(side="left", padx=3)
-
-    def save_and_close():
+    # Bezáráskor szinkronizáld, ha kell
+    def close():
         sync_to_server()
-        update_tree()
+        update_tree()  # Frissítsd a fő táblát, ha kell
         ablak.destroy()
 
-    tk.Button(ablak, text="Mentés és bezárás", command=save_and_close).pack(pady=8)
+    tk.Button(ablak, text="Mentés és bezárás", command=close).grid(row=5, column=0, columnspan=2, pady=10)
+
+    ablak.mainloop()  # Nem kell, mert Toplevel, de ha kell, tedd be
 
 # --- Oszlop hozzáadása ---
 def oszlop_hozzaadasa():

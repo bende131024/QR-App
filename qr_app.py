@@ -1,3 +1,4 @@
+# qr_app.py (frissített: mezők szerkesztése, hozzáadása, törlése, sorrend változtatása)
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 import json
@@ -109,6 +110,130 @@ def resize_columns():
         tree.column(col, width=new_width)
 
     tree.update_idletasks()
+
+# --- Mezők kezelése (hozzáadás / törlés / átnevezés / sorrend) ---
+def mezok_kezelese():
+    ablak = tk.Toplevel(root)
+    ablak.title("Mezők szerkesztése")
+    ablak.geometry("400x400")
+
+    lb = tk.Listbox(ablak, selectmode="browse")
+    lb.pack(fill="both", expand=True, padx=10, pady=10)
+    def refresh_listbox():
+        lb.delete(0, tk.END)
+        for m in mezok:
+            lb.insert(tk.END, m)
+    refresh_listbox()
+
+    def uj_mezo():
+        neve = simpledialog.askstring("Új mező", "Mező neve:", parent=ablak)
+        if neve:
+            if neve in mezok:
+                messagebox.showwarning("Figyelem", "Már létezik ilyen mező!")
+                return
+            mezok.append(neve)
+            # frissítsük minden adatsorban az új kulcsot (üres értékkel)
+            for r in adatok:
+                r.setdefault(neve, "")
+            refresh_listbox()
+            update_tree()
+            sync_to_server()
+
+    def torol_mezo():
+        sel = lb.curselection()
+        if not sel:
+            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt a törléshez!")
+            return
+        idx = sel[0]
+        nev = mezok[idx]
+        if nev == "Azonosító":
+            messagebox.showerror("Hiba", "Az 'Azonosító' mezőt nem lehet törölni!")
+            return
+        if messagebox.askyesno("Törlés", f"Törlöd a(z) '{nev}' mezőt? Ez eltávolítja a mező értékét minden sorból."):
+            # eltávolítjuk a mezőt a mezok-ból és az adatokból, valamint a listákból
+            mezok.pop(idx)
+            for r in adatok:
+                if nev in r:
+                    del r[nev]
+            if nev in listak:
+                del listak[nev]
+            refresh_listbox()
+            update_tree()
+            sync_to_server()
+
+    def rename_mezo():
+        sel = lb.curselection()
+        if not sel:
+            messagebox.showwarning("Figyelem", "Válassz ki egy mezőt az átnevezéshez!")
+            return
+        idx = sel[0]
+        old = mezok[idx]
+        if old == "Azonosító":
+            messagebox.showerror("Hiba", "Az 'Azonosító' mezőt nem lehet átnevezni!")
+            return
+        new = simpledialog.askstring("Mező átnevezése", "Új név:", initialvalue=old, parent=ablak)
+        if new:
+            if new in mezok:
+                messagebox.showwarning("Figyelem", "Már létezik ilyen mező!")
+                return
+            # átnevezzük a mezokot
+            mezok[idx] = new
+            # az adatokban átnevezzük a kulcsokat
+            for r in adatok:
+                if old in r:
+                    r[new] = r.pop(old)
+                else:
+                    r.setdefault(new, "")
+            # ha volt listak bejegyzés az régi név alatt, áthelyezzük
+            if old in listak:
+                listak[new] = listak.pop(old)
+            refresh_listbox()
+            update_tree()
+            sync_to_server()
+
+    def move_up():
+        sel = lb.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        if idx == 0:
+            return
+        mezok[idx-1], mezok[idx] = mezok[idx], mezok[idx-1]
+        refresh_listbox()
+        lb.select_set(idx-1)
+        update_tree()
+        sync_to_server()
+
+    def move_down():
+        sel = lb.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        if idx == len(mezok)-1:
+            return
+        mezok[idx+1], mezok[idx] = mezok[idx], mezok[idx+1]
+        refresh_listbox()
+        lb.select_set(idx+1)
+        update_tree()
+        sync_to_server()
+
+    btn_frame = tk.Frame(ablak)
+    btn_frame.pack(pady=5)
+    tk.Button(btn_frame, text="Új mező", command=uj_mezo).grid(row=0, column=0, padx=4, pady=2)
+    tk.Button(btn_frame, text="Törlés", command=torol_mezo).grid(row=0, column=1, padx=4, pady=2)
+    tk.Button(btn_frame, text="Átnevez", command=rename_mezo).grid(row=0, column=2, padx=4, pady=2)
+    tk.Button(btn_frame, text="Fel", command=move_up).grid(row=1, column=0, padx=4, pady=2)
+    tk.Button(btn_frame, text="Le", command=move_down).grid(row=1, column=1, padx=4, pady=2)
+
+    def close():
+        sync_to_server()
+        update_tree()
+        ablak.destroy()
+
+    tk.Button(ablak, text="Mentés és bezárás", command=close).pack(pady=6)
+
+    ablak.transient(root)
+    ablak.grab_set()
 
 # --- Sor hozzáadás / módosítás ---
 def sor_beviteli_ablak(modositott_sor=None, idx=None):
@@ -434,10 +559,11 @@ tk.Button(frame, text="Módosítás", command=modositas).grid(row=0, column=1, p
 tk.Button(frame, text="Törlés", command=torles).grid(row=0, column=2, padx=5)
 tk.Button(frame, text="QR generálás", command=qr_generalas).grid(row=0, column=3, padx=5)
 tk.Button(frame, text="Legördülők szerkesztése", command=szerkesztes_legordulok).grid(row=0, column=4, padx=5)
-tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).grid(row=0, column=5, padx=5)
-tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=0, column=6, padx=5)
-tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=0, column=7, padx=5)
-tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=0, column=8, padx=5)
+tk.Button(frame, text="Mezők szerkesztése", command=mezok_kezelese).grid(row=0, column=5, padx=5)
+tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).grid(row=0, column=6, padx=5)
+tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=0, column=7, padx=5)
+tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=0, column=8, padx=5)
+tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=0, column=9, padx=5)
 
 zoom_frame = tk.Frame(root)
 zoom_frame.pack(side="bottom", fill="x", padx=5, pady=5)
@@ -445,6 +571,7 @@ scale = tk.Scale(zoom_frame, from_=8, to=24, orient="horizontal", command=zoom, 
 scale.set(10)
 scale.pack(side="right")
 
+# Inicializálás: frissítjük a Treeview-t (ha a szerver elérhető, megpróbáljuk szinkronizálni)
 try:
     sync_from_server()
 except Exception:

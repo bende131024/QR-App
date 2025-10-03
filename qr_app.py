@@ -16,7 +16,7 @@ SERVER_URL = "https://qr-app-emfo.onrender.com"  # Helyi teszteléshez; frissít
 
 # --- Globális változók és adatok ---
 adatok = []
-fix_mezok = ["Azonosító", "Fémzárszám", "Beszállító", "Név", "Hely", "Súly", "Megjegyzés", "Osztály"]
+fix_mezok = ["Azonosító", "Sorszám", "Fémzárszám", "Beszállító", "Név", "Fok", "Hely", "Súly", "Megjegyzés", "Osztály"]
 mezok = fix_mezok.copy()
 
 # Legördülő lista opciók
@@ -268,6 +268,24 @@ def sor_beviteli_ablak(modositott_sor=None, idx=None):
 
     def ment():
         sor = {field: entries[field].get() for field in entries if field != "Azonosító"}
+
+        # --- Automatikus sorszámozás Név + Fok + Beszállító szerint ---
+        nev = sor.get("Név", "").strip()
+        fok = sor.get("Fok", "").strip()
+        beszallito = sor.get("Beszállító", "").strip()
+
+        if nev and fok and beszallito:
+            # megszámoljuk az eddigi hasonló sorokat
+            existing = [
+                d for d in adatok
+                if d.get("Név", "").strip() == nev
+                and d.get("Fok", "").strip() == fok
+                and d.get("Beszállító", "").strip() == beszallito
+            ]
+            sor["Sorszám"] = len(existing) + 1
+        else:
+            sor["Sorszám"] = 1  # ha hiányzik valami, akkor 1
+
         if modositott_sor and idx is not None:
             sor["Azonosító"] = modositott_sor["Azonosító"]
             adatok[idx] = sor
@@ -280,6 +298,7 @@ def sor_beviteli_ablak(modositott_sor=None, idx=None):
                 messagebox.showerror("Hiba", "Az azonosító már létezik!")
                 return
             adatok.append(sor)
+
         sync_to_server()
         update_tree()
         ablak.destroy()

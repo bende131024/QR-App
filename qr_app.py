@@ -536,7 +536,7 @@ def zoom(val):
 
 # --- Főablak ---
 root = tk.Tk()
-root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron")
+root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron"
 
 style = ttk.Style()
 style.theme_use("default")
@@ -584,7 +584,6 @@ tk.Button(frame, text="Szinkronizálás szerverrel", command=sync_from_server).g
 tk.Button(frame, text="Mentés szerverre", command=sync_to_server).grid(row=0, column=7, padx=5)
 tk.Button(frame, text="Lokális mentés", command=ment_local).grid(row=0, column=8, padx=5)
 tk.Button(frame, text="Lokális betöltés", command=betolt_local).grid(row=0, column=9, padx=5)
-tk.Button(frame, text="Térkép", command=lambda: webbrowser.open(f"{SERVER_URL}/map")).grid(row=0, column=10, padx=5)  # Új Térkép gomb
 
 zoom_frame = tk.Frame(root)
 zoom_frame.pack(side="bottom", fill="x", padx=5, pady=5)

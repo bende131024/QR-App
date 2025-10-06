@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 import json
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -26,6 +27,13 @@ class Adat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     azonosito = db.Column(db.String(36), unique=True, nullable=False)
     data = db.Column(db.Text, nullable=False)  # JSON string dinamikus mezőkhöz
+
+class Beolvasas(db.Model):  # Új model a beolvasott helyekhez
+    id = db.Column(db.Integer, primary_key=True)
+    azonosito = db.Column(db.String(36), nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    long = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Adatbázis táblák létrehozása
 with app.app_context():
@@ -116,6 +124,36 @@ def edit_row(azonosito):
         except Exception as e:
             db.session.rollback()
             return {"status": "error", "message": str(e)}, 500
+
+@app.route('/log_location/<azonosito>', methods=['POST'])  # Új endpoint a hely rögzítésére
+def log_location(azonosito):
+    data = request.json
+    lat = data.get('lat')
+    long = data.get('long')
+    if not lat or not long:
+        return {"status": "error", "message": "Hiányzó helyadatok"}, 400
+    try:
+        new_log = Beolvasas(azonosito=azonosito, lat=lat, long=long)
+        db.session.add(new_log)
+        db.session.commit()
+        return {"status": "success"}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/get_locations', methods=['GET'])  # Endpoint a helyek lekérdezésére (JSON)
+def get_locations():
+    locations = Beolvasas.query.all()
+    return jsonify([{
+        'azonosito': loc.azonosito,
+        'lat': loc.lat,
+        'long': loc.long,
+        'timestamp': loc.timestamp.isoformat()
+    } for loc in locations])
+
+@app.route('/map', methods=['GET'])  # Új route a térkép HTML-hez
+def show_map():
+    return render_template('map.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -2,56 +2,81 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Mobilbarát méretezés -->
     <title>Termék módosítása: {{ azonosito }}</title>
-    <script>
-        // Geolokáció kérése és küldése a szerverre
-        window.onload = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendLocation, handleError);
-            } else {
-                console.log("Geolokáció nem támogatott.");
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Teljes képernyő magasság */
+        }
+        h1 {
+            font-size: 1.5em;
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        div {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[readonly] {
+            background-color: #e9ecef;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        @media (max-width: 600px) { /* Mobil nézet finomhangolás */
+            h1 {
+                font-size: 1.2em;
             }
-        };
-
-        function sendLocation(position) {
-            fetch('/log_location/{{ azonosito }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    lat: position.coords.latitude,
-                    long: position.coords.longitude
-                })
-            }).then(response => {
-                if (response.ok) {
-                    console.log("Hely rögzítve.");
-                } else {
-                    console.error("Hiba a hely rögzítésekor.");
-                }
-            });
+            form {
+                padding: 5px;
+            }
+            input[type="text"], select {
+                font-size: 0.9em;
+            }
+            button {
+                font-size: 1em;
+            }
         }
-
-        function handleError(error) {
-            console.error("Geolokáció hiba: " + error.message);
-        }
-
-        // Mentés funkció (eredeti marad, de hozzáadva az onload-hoz)
-        function saveChanges() {
-            const form = document.getElementById('editForm');
-            const data = {};
-            new FormData(form).forEach((value, key) => { data[key] = value; });
-            fetch('/edit/{{ azonosito }}', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            }).then(response => {
-                if (response.ok) {
-                    alert("Változások mentve!");
-                } else {
-                    alert("Hiba a mentés során.");
-                }
-            });
-        }
-    </script>
+    </style>
 </head>
 <body>
     <h1>Termék módosítása: {{ azonosito }}</h1>
@@ -74,5 +99,23 @@
         {% endfor %}
         <button type="button" onclick="saveChanges()">Mentés</button>
     </form>
+    <script>
+        function saveChanges() {
+            const form = document.getElementById('editForm');
+            const data = {};
+            new FormData(form).forEach((value, key) => { data[key] = value; });
+            fetch('/edit/{{ azonosito }}', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(response => {
+                if (response.ok) {
+                    alert("Változások mentve!");
+                } else {
+                    alert("Hiba a mentés során.");
+                }
+            });
+        }
+    </script>
 </body>
 </html>

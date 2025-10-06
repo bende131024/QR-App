@@ -10,7 +10,6 @@ import platform
 import tkinter.font as tkfont
 import requests
 import uuid
-import webbrowser  # Új import a térkép megnyitásához
 
 # Szerver URL (frissítsd a Render URL-re telepítés után, pl. https://your-app.onrender.com)
 SERVER_URL = "https://qr-app-emfo.onrender.com"  # Helyi teszteléshez; frissítsd a Render URL-re!
@@ -536,7 +535,7 @@ def zoom(val):
 
 # --- Főablak ---
 root = tk.Tk()
-root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron"
+root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron")
 
 style = ttk.Style()
 style.theme_use("default")

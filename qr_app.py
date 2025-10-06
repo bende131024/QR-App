@@ -536,7 +536,7 @@ def zoom(val):
 
 # --- Főablak ---
 root = tk.Tk()
-root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron"
+root.title("QR Kód Generáló - Dinamikus Mezők és Szerver Szinkron")
 
 style = ttk.Style()
 style.theme_use("default")
